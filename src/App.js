@@ -4,14 +4,12 @@ import AppLayout from './components/layout';
 import './App.css';
 import Home from './pages/home';
 import NotFound from './pages/not-found';
-import Login from './pages/login';
 
 const App = () => {
   return (
     <Router>   
       <Switch>
           <AppLayout exact path="/" component={Home}/>
-          <AppLayout exact path="/login" component={Login}/>
           <AppLayout component={NotFound}/>
       </Switch>
     </Router>

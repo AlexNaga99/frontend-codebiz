@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600&display=swap');
 
 .ant-layout-header{
-    background: #007cba !important;
+    background: white !important;
     padding: 0 20px !important;
 }
 .logo-icon:hover{
@@ -14,6 +14,95 @@
 .ant-layout-sider-trigger{
     background: #007cba !important;
 }
-.ant-layout-content{
-    margin: 0px 20px !important;
+.footer-partition{
+    margin-top: 30px;
+    margin-bottom: 30px;
+    width: 33%;
+    text-align: center;
 }
+.container{
+    padding-right: 0px !important;
+    padding-left: 0px !important;
+}
+.footer-button:hover{
+    cursor: pointer;
+}
+.footer-button{
+    width: 70%;
+    height: 60%;
+    background: white;
+    color: black;
+    border-radius: 8px;
+}
+.footer-button p{
+    text-align: left;
+    margin-bottom: unset;
+    line-height: 1;
+}
+.footer-icons{
+    margin: 0 20px;
+}
+.footer-title{
+    color: white;
+    text-align: left;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+}
+.footer-trace{
+    width: 30%;
+    background: white;
+    height: 5px;
+    text-align: left;
+    margin-left: 0;
+}
+.footer-text{
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+}
+.footer-address{
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    color: white;
+    text-align: left;
+}
+.show-mobile{
+    display: none !important;
+}
+.spacing-icon-footer{
+    margin: 0 20px;
+}
+@media only screen and (max-width: 750px) {
+    .show-mobile{
+        display: inherit !important;
+    }
+    .hidden-mobile{
+        display: none !important;
+    }
+    .logo-mobile{
+        width: 90% !important;
+        display: flex;
+        justify-content: center;
+    }
+    .ant-layout-header {
+        height: auto !important;
+        padding: 15px 20px !important;
+    }
+    footer .container.d-flex{
+        display: inherit !important;
+    }
+    .footer-partition{
+        width: 100%;
+    }
+    .footer-button p {
+        padding: 12px;
+    }
+    .spacing-icon-footer{
+        margin: 0 10px;
+    }
+}
+@media (min-width: 1200px){
+    .container {
+        max-width: 1300px;
+    }
+}
+

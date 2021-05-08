@@ -1,3 +1,134 @@
+.show-mobile-home{
+    display: none !important;
+}
+.carousel-indicators li {
+    background-color: white;
+    width: 10px;
+    height: 10px;
+    border-radius: 100%;
+    margin: 0 10px;
+}
+.title{
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    color: black;
+    text-align: left;
+}
+.trace{
+    width: 7%;
+    background: gray;
+    height: 5px;
+    text-align: left;
+    margin-left: 0;
+}
+.ant-card-meta-title{
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+}
+.list-price{
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    margin: unset;
+    text-decoration: line-through;
+    text-align: center;
+}
+.price{
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    margin: unset;
+    color: black;
+    font-size: 1.5em;
+    text-align: center;
+}
+.installment{
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    margin: unset;
+    text-align: center;
+}
+.ant-card-meta{
+    height: 100%;
+}
+.ant-card-meta-detail{
+    height: 100%;
+}
+.ant-card-meta-description{
+    height: 100%;
+}
+.ant-card-cover{
+    height: 50%;
+}
+.ant-card-body{
+    height: 50%;
+    padding-bottom: unset;
+    -webkit-transition: background-color 0.2s ease-in; /* Safari */
+          transition: background-color 0.2s ease-in;
+    -webkit-transition-delay: 0.1s; /* Safari */
+          transition-delay: 0.1s;
+}
+.purchase-button{
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    display: none;
+    color: white;
+    background-color: black;
+    border-radius: 5px;
+    padding: 5px 20%;
+    -webkit-transition-delay: 0.3s; /* Safari */
+          transition-delay: 0.3s;
+    -webkit-transition: background-color 0.2s ease-in; /* Safari */
+          transition: background-color 0.2s ease-in;
+}
+.purchase-button:hover{
+    color: black;
+    background-color: white;
+}
+.spacing-products{
+    margin-bottom: 5%;
+    margin-top: 2%;
+}
+.ant-card-bordered {
+    border: unset;
+}
+.ant-card-body:hover {
+    background: rgb(204, 204, 204);
+}
+.ant-card-body:hover .purchase-button{
+    display: inline-block;
+}
+.carousel-control-prev-icon {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23000' viewBox='0 0 8 8'%3E%3Cpath d='M5.25 0l-4 4 4 4 1.5-1.5-2.5-2.5 2.5-2.5-1.5-1.5z'/%3E%3C/svg%3E");
+}
+.carousel-control-next-icon {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23000' viewBox='0 0 8 8'%3E%3Cpath d='M2.75 0l-1.5 1.5 2.5 2.5-2.5 2.5 1.5 1.5 4-4-4-4z'/%3E%3C/svg%3E");
+}
+.newsletter{
+    background-color: #F2F2F2;
+    padding: 40px 0;
+}
+.newsletter-button{
+    width: 100%;
+    color: white;
+    background-color: black;
+    border-radius: 5px;
+    padding: 5px 20%;
+    -webkit-transition-delay: 0.3s; /* Safari */
+          transition-delay: 0.3s;
+    -webkit-transition: background-color 0.2s ease-in; /* Safari */
+          transition: background-color 0.2s ease-in;
+}
+.newsletter-button:hover{
+    color: black;
+    background-color: white;
+}
+.button-size-newsletter{
+    width: 15%;
+    margin: 0 1%;
+}
+.input-size-newsletter{
+    width: 25%;
+    margin: 0 1%;
+}
 @media only screen and (max-width: 750px) {
     .home img{
         width: 100%;
@@ -5,5 +136,28 @@
     }
     .home.d-flex {
         display: unset !important;
+    }
+    .hidden-mobile-home{
+        display: none !important;
+    }
+    .carousel-indicators li {
+        background-color: black;
+        width: 10px;
+        height: 10px;
+        border-radius: 100%;
+    }
+    .show-mobile-home{
+        display: inherit !important;
+    }
+    .input-size-newsletter {
+        width: 100% !important;
+        margin: 5px 0;
+    }
+    .button-size-newsletter{
+        width: 100% !important;
+        margin: 5px 0;
+    }
+    .newsletter{
+        padding: .5rem !important;
     }
 }

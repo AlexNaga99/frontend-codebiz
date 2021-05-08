@@ -2,579 +2,401 @@
 import React, { useState, useEffect } from "react";
 import 'antd/dist/antd.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'popper.js';
+import 'bootstrap/dist/js/bootstrap.min.js';
 import './style.css';
-import { AutoComplete, message, Table, Image, Popconfirm, Tooltip, Button, Spin, Pagination, Modal, Input, Tabs } from 'antd';
-import { customer_service } from '../../services/customers';
-import { movies_service } from '../../services/movies';
-import { PlusOutlined, StarOutlined, StarFilled, DeleteOutlined } from '@ant-design/icons';
+import banner from '../../assets/banner-completo.png';
+import banner_mobile from '../../assets/mobile-thumb.png';
+import { Spin, Card, Image, Rate, Input, Form, notification  } from 'antd';
+import { AlertOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { products_service } from '../../services/products';
+import { newsletter_service } from '../../services/newsletter';
 import { useCookies } from 'react-cookie';
-import { Redirect } from "react-router";
-import $ from 'jquery'; 
 
 const Home = () => {
 
-  const [ options, setOptions ] = useState([]);
-  const [ optionsTable, setOptionsTable ] = useState([]);
-  const [ customer, setCustomer ] = useState('');
-  const [ customerList, setCustomerList ] = useState([]);
-  const [ editCustomer, setEditCustomer ] = useState([]);
-  const [ cookie, setCookie] = useCookies(['Id']);
-  const [ loading, setLoading ] = useState(false);
-  const [ maxPage, setMaxPage ] = useState();
-  const [ page, setPage ] = useState(1);
-  const [ listMovie, setListMovie ] = useState(false);
-  const [ modal, setModal ] = useState(false);
-  const [ name, setName ] = useState('');
-  const [ cpf, setCpf ] = useState('');
-  const [ email, setEmail ] = useState('');
-  const [ nameEdit, setNameEdit ] = useState('');
-  const [ cpfEdit, setCpfEdit ] = useState('');
-  const [ emailEdit, setEmailEdit ] = useState('');
+  const { Meta } = Card;
 
-  const { TabPane } = Tabs;
+  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState([]);
+  const [cookie, setCookie] = useCookies(['cart']);
 
-  useEffect(() => {
-    fetchCustomers();
-    fetchMovies(1);
-    setPage(1);
-    setListMovie(false);
-    setName('');
-    setCpf('');
-    setEmail('');
-  }, 0);
-  
-  const fetchCustomers = async () => {
-    let customers = await customer_service.getCustomers();
-    let customer_result = customers.data[0];
-    let list = [];
-    let listBackup = [];
-    if(!customer_result.erro){
-      customer_result.data.forEach(obj => {
-        listBackup.push(obj);
-        list.push({ value: obj.id + ' - ' + obj.name + ' - ' + obj.cpf });
-      });
-      setCustomerList(listBackup);
-      setOptions(list);
+  useEffect(async () => {
+    setProducts([]);
+    await getProducts();
+  }, [0]);
+
+  const addProduct = async (idProduct) => {
+    setLoading(true);
+    if(cookie.cart){
+      let list_cart = cookie.cart;
+      list_cart.push(idProduct);
+
+      let tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate()+1);
+      setCookie('cart', list_cart, { path: '/', expires: tomorrow });
     }
     else {
-      message.info("Ocorre um erro ao carregar os clientes", 3);
+      let list_cart = [];
+      list_cart.push(idProduct);
+      
+      let tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate()+1);
+      setCookie('cart', list_cart, { path: '/', expires: tomorrow });
     }
+    setLoading(false);
+    openNotificationSucess('Item adicionado ao carrinho!', 'O item pode ser visualizado através do seu carrinho!');
   }
 
-  const fetchMovies = async (page) => {
+  const submitNewsletter = async (values) => {
     setLoading(true);
-    let movies = await movies_service.getMoviesByPage(page);
-    let movies_result = movies.data[0];
-    if(!movies_result.erro[0]){
-      setOptionsTable(movies_result.data.results);
-      setMaxPage(movies_result.data.total_results);
+    let body = {
+      email: values.email,
+      name: values.name
+    }
+    let news_response = await newsletter_service.insertNewsletter(body);
+    let news = news_response.data;
+    if(news && news.message){
+      openNotificationSucess('Newsletter cadastrado!', 'Agora você irá participar das nossas news com promoções e novidades!');
     }
     else {
-      message.info("Ocorre um erro ao carregar os filmes", 3);
-    }
-    setListMovie(false);
-    setLoading(false);
-  }
-
-  const addMovie = async (record, fav) => {
-    setLoading(true);
-    if(await onValidade()){
-
-      let body = {
-        idCustomer: parseInt(customer),
-        idMovie: parseInt(record.id),
-        favorite: false,
-      }
-
-      let inserted_movie_status = await movies_service.insertMovie(body);
-      let status = inserted_movie_status.data[0];
-      if(status){
-        if(!status.erro){
-          if(!fav){
-            message.success("Filme adicionado com sucesso!", 3);
-          }
-        }
-        else {
-          if(!fav){
-            message.error("Erro: "+ status.erro, 3);
-          }
-        }
-      }
-      if(fav){
-        body.favorite = true;
-        let inserted_favorite_movie = await movies_service.insertFavoriteMovie(body);
-        let favorite_status = inserted_favorite_movie.data[0];
-        if(favorite_status){
-          if(!favorite_status.erro){
-            if(listMovie){
-              await entryListMovies();
-            }
-            message.success("Filme favoritado com sucesso", 3);
-          }
-          else {
-            message.error("Erro: "+ favorite_status.erro, 3);
-          }
-        }
-        else {
-          message.error("Ocorreu um erro ao favoritar!", 3);
-        }
-      }
+      openNotificationError('Sua solicitação deu errado, contate nossa equipe!');
     }
     setLoading(false);
   }
 
-  const removeMovie = async (record) => {
-    setLoading(true);
-    let delete_movie_status = await movies_service.deleteMovie(record.id_bd);
-      let status = delete_movie_status.data[0];
-      if(status){
-        if(!status.erro){
-          await entryListMovies();
-          message.success("Filme excluido com sucesso!", 3);
-        }
-        else {
-          message.error("Erro: "+ status.erro, 3);
-        }
-      }
-    setLoading(false);
-  }
-
-  const removeFavoriteMovie = async (record) => {
-    setLoading(true);
-    if(await onValidade()){
-
-      let body = {
-        idCustomer: parseInt(customer),
-        idMovie: parseInt(record.id),
-        favorite: false,
-      }
-      let inserted_favorite_movie = await movies_service.insertFavoriteMovie(body);
-      let favorite_status = inserted_favorite_movie.data[0];
-      if(favorite_status){
-        if(!favorite_status.erro){
-          await entryListMovies();
-          message.success("Filme desfavoritado com sucesso", 3);
-        }
-        else {
-          message.error("Erro: "+ favorite_status.erro, 3);
-        }
-      }
-      else {
-        message.error("Ocorreu um erro ao desfavoritar!", 3);
-      }
+  const getProducts = async () => {
+    let products_list = await products_service.getProducts();
+    let check_products = products_list.data;
+    if (check_products[0]) {
+      setProducts(check_products);
     }
-    setLoading(false);
-  }
-  
-  const entryListMovies = async () => {
-    setLoading(true);
-    if(await onValidade()){
-      setListMovie(true);
-      let list_movies = [];
-      let response_favorite = await movies_service.getFavoriteMovies(customer, 1);
-      let favorite = response_favorite.data[0];
-      if(favorite){
-        if(!favorite.erro){
-            for (const obj_favorite of favorite.data) {
-              list_movies.push({...obj_favorite, favorite: true });
-            }
-        }
-      }
-      let response_unfavorite = await movies_service.getFavoriteMovies(customer, 0);
-      let unfavorite = response_unfavorite.data[0];
-      if(unfavorite){
-        if(!unfavorite.erro){
-            for (const obj_unfavorite of unfavorite.data) {
-              list_movies.push(obj_unfavorite);
-            }
-        }
-      }
-      setOptionsTable(list_movies);
+    else {
+      openNotificationError('Ocorreu um erro ao listar os produtos!');
     }
     setLoading(false);
   }
 
-  const onValidade = async () => {
-    if(!customer){
-      message.info("Selecione um cliente antes!", 3);
-      return false
-    }
-    if(!cookie.Id){
-      message.info("Você não está logado!", 3);
-      return false
-    }
-    return true
-  }
+  const listProducts = () => {
+    let array = [];
 
-  const onValidadeNewCustomer = async () => {
-    if(!name){
-      message.info("Campo nome não preenchido.", 3);
-      return false
-    }
-    if(!cpf){
-      message.info("Campo cpf não preenchido.", 3);
-      return false
-    }
-    let validade = await validadeCpf(cpf);
-    if(!validade){
-      message.info("Campo cpf não preenchido corretamente.", 3);
-      return false
-    }
-    if(!email){
-      message.info("Campo email não preenchido.", 3);
-      return false
-    }
-    return true
-  }
-
-  const onValidadeEditCustomer = async () => {
-    if(!nameEdit && !editCustomer.name){
-      message.info("Campo nome não preenchido.", 3);
-      return false
-    }
-    if(!cpfEdit && !editCustomer.cpf){
-      message.info("Campo cpf não preenchido.", 3);
-      return false
-    }
-    let cpf = cpfEdit ? cpfEdit : editCustomer.cpf;
-    let validade = await validadeCpf(cpf.toString());
-    if(!validade){
-      message.info("Campo cpf não preenchido corretamente.", 3);
-      return false
-    }
-    if(!emailEdit && !editCustomer.email){
-      message.info("Campo email não preenchido.", 3);
-      return false
-    }
-    return true
-  }
-
-  const selectedCustomer = (value) => {
-    setCustomer(value.substr(0, 1));
-  }
-
-  const showModal = () => {
-    setName('');
-    setCpf('');
-    setEmail('');
-    setNameEdit('');
-    setCpfEdit('');
-    setEmailEdit('');
-    setModal(!modal);
-    let info_customer = customerList.find(obj => obj.id == customer);
-    setEditCustomer(info_customer);
-  }
-
-  const createNewCustomer = async () => {
-    showModal();
-    setLoading(true);
-    if(await onValidadeNewCustomer()){
-      let body = {
-        name: name,
-        cpf: cpf,
-        email: email,
-      }
-      let response_status = await customer_service.insertCustomer(body);
-      let status = response_status.data[0];
-      if(status){
-        if(!status.erro){
-          await fetchCustomers();
-          message.success("Cliente criando com sucesso.", 3);
-        }
-        else {
-          message.error("Erro: "+ status.erro, 3);
-        }
-      }
-      else {
-        message.error("Ocorreu um erro ao criar o cliente.", 3);
-      }
-    }
-    setLoading(false);
-  }
-
-  const EditCustomer = async () => {
-    showModal();
-    setLoading(true);
-    if(await onValidadeEditCustomer()){
-      let body = {
-        name: nameEdit ? nameEdit : editCustomer.name,
-        cpf: cpfEdit ? cpfEdit : editCustomer.cpf,
-        email: emailEdit ? emailEdit : editCustomer.email,
-      }
-      let response_status = await customer_service.updateCustomer(customer, body);
-      let status = response_status.data[0];
-        if(status){
-          if(!status.erro){
-            await fetchCustomers();
-            message.success("Cliente editado com sucesso.", 3);
-          }
-          else {
-            message.error("Erro: "+ status.erro, 3);
-          }
-        }
-        else {
-          message.error("Ocorreu um erro ao editar o cliente.", 3);
-        }
-    }
-    setLoading(false);
-  }
-
-  const deleteCustomer = async () => {
-    showModal();
-    setLoading(true);
-    let response_status = await customer_service.deleteCustomer(customer);
-
-    let status = response_status.data[0];
-      if(status){
-        if(!status.erro){
-          await fetchCustomers();
-          message.success("Cliente excluido com sucesso.", 3);
-        }
-        else {
-          message.error("Erro: "+ status.erro, 3);
-        }
-      }
-      else {
-        message.error("Ocorreu um erro ao criar o cliente.", 3);
-      }
-    setLoading(false);
-  }
-
-  const validadeCpf = async (strCpf) => {
-    if (!/[0-9]{11}/.test(strCpf)) return false;
-    if (strCpf === "00000000000") return false;
-    let soma = 0;
-
-    for (let i = 1; i <= 9; i++) {
-        soma += parseInt(strCpf.substring(i - 1, i)) * (11 - i);
-    }
-
-    let resto = soma % 11;
-
-    if (resto === 10 || resto === 11 || resto < 2) {
-        resto = 0;
-    } else {
-        resto = 11 - resto;
-    }
-
-    soma = 0;
-
-    for (let j = 1; j <= 10; j++) {
-        soma += parseInt(strCpf.substring(j - 1, j)) * (12 - j);
-    }
-    resto = soma % 11;
-
-    if (resto === 10 || resto === 11 || resto < 2) {
-        resto = 0;
-    } else {
-        resto = 11 - resto;
-    }
-
-    if (resto !== parseInt(strCpf.substring(10, 11))) {
-        return false;
-    }
-
-    return true;
-  }
-
-  const selectedPage = (value) => {
-    setPage(value);
-    fetchMovies(value);
-    $('html').animate({
-      scrollTop: $("#result-pagination").offset().top
-    })
-  }
-
-  const setNewName = e => {
-    setName(e.target.value);
-  }
-
-  const setNewCpf = e => {
-    setCpf(e.target.value);
-  }
-
-  const setNewEmail = e => {
-    setEmail(e.target.value);
-  }
-
-  const setEditName = e => {
-    setNameEdit(e.target.value);
-  }
-
-  const setEditCpf = e => {
-    setCpfEdit(e.target.value);
-  }
-
-  const setEditEmail = e => {
-    setEmailEdit(e.target.value);
-  }
-
-  const columns = [
-    {
-        title: (<span><h3>Filmes</h3></span>),
-        dataIndex: 'poster_path',
-        key: 'poster_path',
-        align: 'left',
-        width: '30%',
-        render: (text, record) => <span> 
-                                    <div class="d-flex flex-column bd-highlight">
-                                      <div class="bd-highlight">
-                                        <h3>Título: {record.title}</h3>
-                                      </div>
-                                      <div class="bd-highlight">
-                                      <Image width={200} src={"https://image.tmdb.org/t/p/w185/" + record.poster_path} />
-                                      </div>
-                                    </div>
-                                  </span>
-    },
-    {
-        title: (<span><h3>Informações adicionais</h3></span>),
-        dataIndex: 'overview',
-        key: 'overview',
-        align: 'left',
-        width: '50%',
-        render: (text, record) => <span> 
-                                    <div class="d-flex flex-column bd-highlight">
-                                      <div class="bd-highlight">
-                                        <p>Título original: {record.original_title}</p>
-                                      </div>
-                                      <div class="bd-highlight">
-                                        <p>Sinopse: {record.overview}</p>
-                                      </div>
-                                      <div class="bd-highlight">
-                                        <p>Popularidade: {record.popularity}</p>
-                                      </div>
-                                      <div class="bd-highlight">
-                                        <p>Lançamento: {record.release_date}</p>
-                                      </div>
-                                    </div>
-                                  </span>
-    },
-    {
-        title: (<span><h3>Ação</h3></span>),
-        key: 'Action',
-        width: '20%',
-        align: 'center',
-        render: (text, record) => (
-            <Button.Group>
-                <div style={{ padding: "7px" }}>
-                  {record.favorite ? 
-                  <Popconfirm placement="left" title={"Tem certeza que deseja Desfavoritar?"} onConfirm={() => removeFavoriteMovie(record, "fav")} okText="Sim" cancelText="Não">
-                      <Tooltip placement="top" title={"Desfavoritar"}>
-                          <a><StarFilled /></a>
-                      </Tooltip>
-                  </Popconfirm>
-                  : 
-                  <Popconfirm placement="left" title={"Tem certeza que deseja Favoritar?"} onConfirm={() => addMovie(record, "fav")} okText="Sim" cancelText="Não">
-                    <Tooltip placement="top" title={"Favoritar"}>
-                        <a><StarOutlined /></a>
-                    </Tooltip>
-                  </Popconfirm>
+    for (let index = 0; index < products.length / 4; index++) {
+      if (index == 0) {
+        let obj = (
+          <div class="carousel-item active">
+            <div className="d-flex justify-content-between">
+              {
+                products.map((product, i) => {
+                  if (i < 4) {
+                    return (
+                      <Card hoverable style={{ width: 240, height: '500px' }} cover={<Image width={'100%'} src={product.imageUrl} />}>
+                        <Meta title={product.productName} description={
+                          <div style={{ height: '100%' }}>
+                            <div className="d-flex justify-content-center" style={{ height: '15%' }}>
+                              <Rate allowHalf defaultValue={product.stars} disabled={true} style={{ color: '#F8475F' }}/>
+                            </div>
+                            <div style={{ height: '15%' }}>
+                              {product.listPrice ? <p className="list-price">de: {(product.listPrice/100).toLocaleString('pr-BR', {style: 'currency',currency: 'BRL', minimumFractionDigits: 2})}</p> : null }
+                            </div>
+                            <div style={{ height: '15%' }}>
+                              <p className="price"><b>por {(product.price/100).toLocaleString('pr-BR', {style: 'currency',currency: 'BRL', minimumFractionDigits: 2})}</b></p>
+                            </div>
+                            <div style={{ height: '15%' }}>
+                              {product.installments[0] ? <p className="installment">ou em {product.installments[0].quantity}x de {(product.installments[0].value/100).toLocaleString('pr-BR', {style: 'currency',currency: 'BRL', minimumFractionDigits: 2})}</p> :null}
+                            </div>
+                            <div style={{ height: '40%' }}>
+                              <div className="d-flex justify-content-center align-self-end">
+                                <button className="purchase-button" onClick={() => addProduct(product.productId)}>COMPRAR</button>
+                              </div>
+                            </div>
+                          </div>
+                        } />
+                      </Card>
+                    )
                   }
-                </div>
-                <div style={{ padding: "7px" }}>
-                    {listMovie ? 
-                    <Popconfirm placement="left" title={"Tem certeza que deseja remover?"} onConfirm={() => removeMovie(record)} okText="Sim" cancelText="Não">
-                      <Tooltip placement="top" title={"Remover da lista"}>
-                          <a><DeleteOutlined /></a>
-                      </Tooltip>
-                    </Popconfirm>
-                    :
-                    <Popconfirm placement="left" title={"Tem certeza que deseja adicionar?"} onConfirm={() => addMovie(record)} okText="Sim" cancelText="Não">
-                      <Tooltip placement="top" title={"Adicionar à lista"}>
-                          <a><PlusOutlined /></a>
-                      </Tooltip>
-                    </Popconfirm>
-                    }
-                </div>
-            </Button.Group>
-        ),
-    },
-  ];
+                  i++;
+                })
+              }
+            </div>
+          </div>)
+        array.push(obj);
+      }
+      if (index > 0) {
+
+        let obj = (
+          <div class="carousel-item">
+            <div className="d-flex justify-content-between">
+              {
+                products.filter((product, i) => i >= index * 4 && i < (index + 1) * 4).map(filteredProduct => {
+                  return (
+                    <Card hoverable style={{ width: 240, height: '500px' }} cover={<Image width={'100%'} src={filteredProduct.imageUrl} />}>
+                      <Meta title={filteredProduct.productName} description={
+                          <div style={{ height: '100%' }}>
+                            <div className="d-flex justify-content-center" style={{ height: '15%' }}>
+                              <Rate allowHalf defaultValue={filteredProduct.stars} disabled={true} style={{ color: '#F8475F' }}/>
+                            </div>
+                            <div style={{ height: '15%' }}>
+                              {filteredProduct.listPrice ? <p style={{ margin: 'unset', textDecoration: 'line-through', textAlign: 'center' }}>de: {(filteredProduct.listPrice/100).toLocaleString('pr-BR', {style: 'currency',currency: 'BRL', minimumFractionDigits: 2})}</p> : null }
+                            </div>
+                            <div style={{ height: '15%' }}>
+                              <p style={{ margin: 'unset', color: 'black', fontSize: '1.5em', textAlign: 'center' }}><b>por {(filteredProduct.price/100).toLocaleString('pr-BR', {style: 'currency',currency: 'BRL', minimumFractionDigits: 2})}</b></p>
+                            </div>
+                            <div style={{ height: '15%' }}>
+                              {filteredProduct.installments[0] ? <p style={{ margin: 'unset', textAlign: 'center' }}>ou em {filteredProduct.installments[0].quantity}x de {(filteredProduct.installments[0].value/100).toLocaleString('pr-BR', {style: 'currency',currency: 'BRL', minimumFractionDigits: 2})}</p> :null}
+                            </div>
+                            <div style={{ height: '40%' }}>
+                              <div className="d-flex justify-content-center align-self-end"><button className="purchase-button"onClick={() => addProduct(filteredProduct.productId)}>COMPRAR</button></div>
+                            </div>
+                          </div>
+                        } />
+                    </Card>
+                  )
+
+                })
+              }
+            </div>
+          </div>)
+        array.push(obj);
+      }
+
+    }
+    return array;
+  }
+
+  const listProductsInMobile = () => {
+    let array = [];
+
+    for (let index = 0; index < products.length; index++) {
+      if (index == 0) {
+        let obj = (
+          <div class="carousel-item active">
+            <div className="d-flex justify-content-center">
+              {
+                products.map((product, i) => {
+                  if (i < 1) {
+                    return (
+                      <Card hoverable style={{ width: 240, height: '500px' }} cover={<Image width={'100%'} src={product.imageUrl} />}>
+                        <Meta title={product.productName} description={
+                          <div style={{ height: '100%' }}>
+                            <div className="d-flex justify-content-center" style={{ height: '15%' }}>
+                              <Rate allowHalf defaultValue={product.stars} disabled={true} style={{ color: '#F8475F' }}/>
+                            </div>
+                            <div style={{ height: '15%' }}>
+                              {product.listPrice ? <p className="list-price">de: {(product.listPrice/100).toLocaleString('pr-BR', {style: 'currency',currency: 'BRL', minimumFractionDigits: 2})}</p> : null }
+                            </div>
+                            <div style={{ height: '15%' }}>
+                              <p className="price"><b>por {(product.price/100).toLocaleString('pr-BR', {style: 'currency',currency: 'BRL', minimumFractionDigits: 2})}</b></p>
+                            </div>
+                            <div style={{ height: '15%' }}>
+                              {product.installments[0] ? <p className="installment">ou em {product.installments[0].quantity}x de {(product.installments[0].value/100).toLocaleString('pr-BR', {style: 'currency',currency: 'BRL', minimumFractionDigits: 2})}</p> :null}
+                            </div>
+                            <div style={{ height: '40%' }}>
+                              <div className="d-flex justify-content-center align-self-end">
+                                <button className="purchase-button" onClick={() => addProduct(product.productId)}>COMPRAR</button>
+                              </div>
+                            </div>
+                          </div>
+                        } />
+                      </Card>
+                    )
+                  }
+                  i++;
+                })
+              }
+            </div>
+          </div>)
+        array.push(obj);
+      }
+      if (index > 0) {
+
+        let obj = (
+          <div class="carousel-item">
+            <div className="d-flex justify-content-center">
+              {
+                products.filter((product, i) => i >= index * 1 && i < (index + 1) * 1).map(filteredProduct => {
+                  return (
+                    <Card hoverable style={{ width: 240, height: '500px' }} cover={<Image width={'100%'} src={filteredProduct.imageUrl} />}>
+                      <Meta title={filteredProduct.productName} description={
+                          <div style={{ height: '100%' }}>
+                            <div className="d-flex justify-content-center" style={{ height: '15%' }}>
+                              <Rate allowHalf defaultValue={filteredProduct.stars} disabled={true} style={{ color: '#F8475F' }}/>
+                            </div>
+                            <div style={{ height: '15%' }}>
+                              {filteredProduct.listPrice ? <p style={{ margin: 'unset', textDecoration: 'line-through', textAlign: 'center' }}>de: {(filteredProduct.listPrice/100).toLocaleString('pr-BR', {style: 'currency',currency: 'BRL', minimumFractionDigits: 2})}</p> : null }
+                            </div>
+                            <div style={{ height: '15%' }}>
+                              <p style={{ margin: 'unset', color: 'black', fontSize: '1.5em', textAlign: 'center' }}><b>por {(filteredProduct.price/100).toLocaleString('pr-BR', {style: 'currency',currency: 'BRL', minimumFractionDigits: 2})}</b></p>
+                            </div>
+                            <div style={{ height: '15%' }}>
+                              {filteredProduct.installments[0] ? <p style={{ margin: 'unset', textAlign: 'center' }}>ou em {filteredProduct.installments[0].quantity}x de {(filteredProduct.installments[0].value/100).toLocaleString('pr-BR', {style: 'currency',currency: 'BRL', minimumFractionDigits: 2})}</p> :null}
+                            </div>
+                            <div style={{ height: '40%' }}>
+                              <div className="d-flex justify-content-center align-self-end"><button className="purchase-button"onClick={() => addProduct(filteredProduct.productId)}>COMPRAR</button></div>
+                            </div>
+                          </div>
+                        } />
+                    </Card>
+                  )
+
+                })
+              }
+            </div>
+          </div>)
+        array.push(obj);
+      }
+
+    }
+    return array;
+  }
+
+  const listCarouselIndicator = () => {
+    let obj = (
+      <ol class="carousel-indicators">
+        {
+        products.map((product, i) => {
+          if(i < 1){
+            return(
+              <li data-target="#carouselExampleIndicators4" data-slide-to={i} class="active"></li>
+            )
+          }
+          else {
+            return(
+              <li data-target="#carouselExampleIndicators4" data-slide-to={i}></li>
+            )
+          }
+        })
+        }
+      </ol>
+    );
+    return obj;
+  }
+
+  const openNotificationSucess = (message, description) => {
+    notification.open({
+      message: message,
+      description: description,
+      icon: <CheckCircleOutlined style={{ color: 'green' }} />,
+    });
+  };
+
+  const openNotificationError = (message) => {
+    notification.open({
+      message: 'Algo deu errado!',
+      description: message,
+      icon: <AlertOutlined style={{ color: 'red' }} />,
+    });
+  };
 
   return (
-    cookie.Id ? 
     <Spin spinning={loading}>
-      <div className="home">
-        <div class="d-flex flex-column bd-highlight">
-          <div class="bd-highlight">
-            <h1>GRVPPE - Frontend</h1>
+      <div id="carouselExampleIndicators" class="carousel slide hidden-mobile" data-ride="carousel">
+        <ol class="carousel-indicators">
+          <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
+          <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
+          <li data-target="#carouselExampleIndicators" data-slide-to="2"></li>
+          <li data-target="#carouselExampleIndicators" data-slide-to="3"></li>
+        </ol>
+        <div class="carousel-inner">
+          <div class="carousel-item active">
+            <img class="d-block w-100" src={banner} alt="First slide" />
+          </div>
+          <div class="carousel-item">
+            <img class="d-block w-100" src={banner} alt="Second slide" />
+          </div>
+          <div class="carousel-item">
+            <img class="d-block w-100" src={banner} alt="Third slide" />
+          </div>
+          <div class="carousel-item">
+            <img class="d-block w-100" src={banner} alt="Four slide" />
+          </div>
+        </div>
+      </div>
+
+      <div id="carouselExampleIndicators3" class="carousel slide show-mobile" data-ride="carousel">
+        <ol class="carousel-indicators">
+          <li data-target="#carouselExampleIndicators3" data-slide-to="0" class="active"></li>
+          <li data-target="#carouselExampleIndicators3" data-slide-to="1"></li>
+          <li data-target="#carouselExampleIndicators3" data-slide-to="2"></li>
+          <li data-target="#carouselExampleIndicators3" data-slide-to="3"></li>
+        </ol>
+        <div class="carousel-inner">
+          <div class="carousel-item active">
+            <img class="d-block w-100" src={banner_mobile} alt="First slide" />
+          </div>
+          <div class="carousel-item">
+            <img class="d-block w-100" src={banner_mobile} alt="Second slide" />
+          </div>
+          <div class="carousel-item">
+            <img class="d-block w-100" src={banner_mobile} alt="Third slide" />
+          </div>
+          <div class="carousel-item">
+            <img class="d-block w-100" src={banner_mobile} alt="Four slide" />
+          </div>
+        </div>
+      </div>
+
+      <div className="home container">
+        <div class="d-flex flex-column bd-highlight spacing-products">
+          <div class="bd-highlight p-2">
+            <h4 className="title">Mais Vendidos</h4>
+            <hr className="trace" />
           </div>
           <div class="bd-highlight">
 
-            <Modal title="Clientes" visible={modal} onCancel={() => showModal()} footer={null}>
+            <div id="carouselExampleIndicators2" class="hidden-mobile-home carousel slide d-flex justify-content-center" data-ride="carousel">
+              <div class="carousel-inner" style={{ width: '90%' }}>
+                {listProducts()}
+              </div>
+              <a class="carousel-control-prev" href="#carouselExampleIndicators2" role="button" data-slide="prev" style={{ width: '5%' }}>
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="sr-only">Previous</span>
+              </a>
+              <a class="carousel-control-next" href="#carouselExampleIndicators2" role="button" data-slide="next" style={{ width: '5%' }}>
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="sr-only">Next</span>
+              </a>
+            </div>
 
-            <Tabs defaultActiveKey="1">
-              <TabPane tab="Cadastrar" key="1">
-                <div class="d-flex flex-column bd-highlight">
-                  <div class="p-2 bd-highlight">
-                    <Input placeholder="Digite um nome" onChange={setNewName} value={name}/>
-                  </div>
-                  <div class="p-2 bd-highlight">
-                    <Input placeholder="Digite um cpf" onChange={setNewCpf} value={cpf}/>
-                  </div>
-                  <div class="p-2 bd-highlight">
-                    <Input placeholder="Digite um email" onChange={setNewEmail} value={email}/>
-                  </div>
-                  <div class="p-2 bd-highlight">
-                    <Button onClick={() => createNewCustomer()}>Cadastrar</Button>
-                  </div>
+            <div id="carouselExampleIndicators4" class="show-mobile-home carousel slide d-flex justify-content-center" data-ride="carousel">
+                {listCarouselIndicator()}
+              <div class="carousel-inner" style={{ width: '100%' }}>
+                {listProductsInMobile()}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div className="newsletter">
+        <div className="container">
+          <div class="d-flex flex-column bd-highlight" style={{ width: '100%' }}>
+            <div class="bd-highlight d-flex justify-content-center">
+              <h4 className="title">Participe de nossas news com promoções e novidades!</h4>
+            </div>
+            <div class="bd-highlight d-flex justify-content-center">
+              <Form onFinish={(form) => submitNewsletter(form)} layout={'inline'} style={{ width: '100%' }} className="d-flex justify-content-center">
+                <div className="input-size-newsletter">
+                  <Form.Item name='name' rules={[{ required: true, message: 'Porfavor insira seu nome!' }]}>
+                    <Input placeholder="Digite seu nome" style={{ height: '100%' }}/>
+                  </Form.Item>
                 </div>
-              </TabPane>
-              <TabPane tab="Editar" key="2">
-                {editCustomer ?
-                  <div class="d-flex flex-column bd-highlight">
-                    <div class="p-2 bd-highlight">
-                      <Input placeholder={editCustomer.name} onChange={setEditName} value={nameEdit}/>
-                    </div>
-                    <div class="p-2 bd-highlight">
-                      <Input placeholder={editCustomer.cpf} onChange={setEditCpf} value={cpfEdit}/>
-                    </div>
-                    <div class="p-2 bd-highlight">
-                      <Input placeholder={editCustomer.email} onChange={setEditEmail} value={emailEdit}/>
-                    </div>
-                    <div class="p-2 bd-highlight">
-                      <Button onClick={() => EditCustomer()}>Editar</Button>
-                    </div>
-                  </div>
-                :
-                <p>Selecione um cliente primeiro.</p>
-                }
-              </TabPane>
-              <TabPane tab="Excluir" key="3">
-              {editCustomer ?
-                <div class="d-flex flex-column bd-highlight">
-                    <div class="p-2 bd-highlight">
-                      <Input placeholder="Digite um nome" defaultValue={editCustomer.name} disabled={true}/>
-                    </div>
-                    <div class="p-2 bd-highlight">
-                      <Input placeholder="Digite um cpf" defaultValue={editCustomer.cpf} disabled={true}/>
-                    </div>
-                    <div class="p-2 bd-highlight">
-                      <Input placeholder="Digite um email" defaultValue={editCustomer.email} disabled={true}/>
-                    </div>
-                    <div class="p-2 bd-highlight">
-                      <Button onClick={() => deleteCustomer()}>Excluir</Button>
-                    </div>
-                  </div>
-                :
-                <p>Selecione um cliente primeiro.</p>
-                }
-              </TabPane>
-            </Tabs>
-            </Modal>
-
-            <AutoComplete options={options} style={{ width: '20%', padding: '20px 0', paddingRight: '20px' }} onSelect={(value) => selectedCustomer(value)} placeholder="Selecione um cliente" filterOption={(inputValue, option) => option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1} />
-            {listMovie ? <Button onClick={() => fetchMovies(1)}>Todos os filmes</Button> : <Button onClick={entryListMovies}>Lista de filmes</Button>}
-            <Button onClick={() => showModal()} style={{ marginLeft: '20px' }}>Clientes</Button>
-            <Table columns={columns} dataSource={optionsTable} style={{ height: "100%" }} pagination={false} />
-            {listMovie ? null : <Pagination simple defaultCurrent={1} current={page} defaultPageSize={20} total={maxPage} onChange={(e) => selectedPage(e)} style={{ padding: '20px 0'}} />}
+                <div className="input-size-newsletter">
+                  <Form.Item name='email' rules={[{ required: true, type: "email", message: 'Porfavor insira um email válido!' }]}>
+                    <Input placeholder="Digite seu email" style={{ height: '100%' }}/>
+                  </Form.Item>
+                </div>
+                <div className="button-size-newsletter">
+                  <Form.Item>
+                    <button className="newsletter-button" htmlType="submit">Eu quero!</button>
+                  </Form.Item>
+                </div>
+              </Form>
+            </div>
           </div>
         </div>
       </div>
     </Spin>
-    :
-    <Redirect to="/login" />
   )
 }
 
